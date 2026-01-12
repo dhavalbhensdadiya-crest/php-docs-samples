@@ -55,10 +55,14 @@ class secretmanagerTest extends TestCase
     private static $testSecretWithVersions;
     private static $testSecretToCreateName;
     private static $testUmmrSecretToCreateName;
+    private static $testSecretWithCMEKToCreateName;
     private static $testSecretVersion;
     private static $testSecretVersionToDestroy;
     private static $testSecretVersionToDisable;
     private static $testSecretVersionToEnable;
+    private static $testSecretVersionToDestroyWithETag;
+    private static $testSecretVersionToDisableWithETag;
+    private static $testSecretVersionToEnableWithETag;
     private static $testSecretWithTagToCreateName;
     private static $testSecretBindTagToCreateName;
     private static $testSecretWithLabelsToCreateName;
@@ -66,6 +70,7 @@ class secretmanagerTest extends TestCase
     private static $testSecretWithDelayedDestroyToCreateName;
     private static $testSecretWithExpirationToCreateName;
     private static $testSecretWithRotationToCreateName;
+    private static $testSecretWithTopicToCreateName;
 
 
     private static $iamUser = 'user:sethvargo@google.com';
@@ -105,18 +110,20 @@ class secretmanagerTest extends TestCase
         self::$testSecretWithAnnotationsToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
         self::$testSecretWithDelayedDestroyToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
         self::$testSecretWithExpirationToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
-        self::$testSecretWithRotationToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
+    self::$testSecretWithRotationToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
+    self::$testSecretWithTopicToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
+    self::$testSecretWithCMEKToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
 
         self::$testRotationPeriod = 3600; // 1 hour
         self::$testRotationNextTime = time() + 7200; // 2 hours from now
 
         // Rotation topic: allow users to supply a full topic resource via
-        // SECRET_ROTATION_TOPIC (projects/{project}/topics/{topic}). If not
+        // PUBSUB_TOPIC_NAME (projects/{project}/topics/{topic}). If not
         // provided, skip rotation tests.
-        $envTopic = getenv('SECRET_ROTATION_TOPIC');
+        $envTopic = getenv('PUBSUB_TOPIC_NAME');
         if ($envTopic === false || $envTopic === '') {
             self::$skipRotationTests = true;
-            printf('Skipping rotation tests: SECRET_ROTATION_TOPIC not set' . PHP_EOL);
+            printf('Skipping rotation tests: PUBSUB_TOPIC_NAME not set' . PHP_EOL);
         } else {
             // Use provided topic resource name and extract short name for any SDK calls
             self::$testRotationTopic = $envTopic;
@@ -130,6 +137,10 @@ class secretmanagerTest extends TestCase
         self::$testSecretVersionToDisable = self::addSecretVersion(self::$testSecretWithVersions);
         self::$testSecretVersionToEnable = self::addSecretVersion(self::$testSecretWithVersions);
         self::disableSecretVersion(self::$testSecretVersionToEnable);
+        self::$testSecretVersionToDestroyWithETag = self::addSecretVersion(self::$testSecretWithVersions);
+        self::$testSecretVersionToDisableWithETag = self::addSecretVersion(self::$testSecretWithVersions);
+        self::$testSecretVersionToEnableWithETag = self::addSecretVersion(self::$testSecretWithVersions);
+        self::disableSecretVersion(self::$testSecretVersionToEnableWithETag);
 
         self::$testTagKey = self::createTagKey(self::randomSecretId());
         self::$testTagValue = self::createTagValue(self::randomSecretId());
@@ -148,7 +159,9 @@ class secretmanagerTest extends TestCase
         self::deleteSecret(self::$testSecretWithAnnotationsToCreateName);
         self::deleteSecret(self::$testSecretWithDelayedDestroyToCreateName);
         self::deleteSecret(self::$testSecretWithExpirationToCreateName);
-        self::deleteSecret(self::$testSecretWithRotationToCreateName);
+    self::deleteSecret(self::$testSecretWithRotationToCreateName);
+    self::deleteSecret(self::$testSecretWithTopicToCreateName);
+    self::deleteSecret(self::$testSecretWithCMEKToCreateName);
         sleep(15); // Added a sleep to wait for the tag unbinding
         self::deleteTagValue();
         self::deleteTagKey();
@@ -343,6 +356,24 @@ class secretmanagerTest extends TestCase
         $this->assertStringContainsString('Created secret', $output);
     }
 
+    public function testCreateSecretWithCmek()
+    {
+        $kmsKey = getenv('CUSTOMER_ENC_KEY');
+        if ($kmsKey === false || $kmsKey === '') {
+            $this->markTestSkipped('CUSTOMER_ENC_KEY not set; skipping CMEK test.');
+        }
+
+        $name = self::$client->parseName(self::$testSecretToCreateName);
+
+        $output = $this->runFunctionSnippet('create_secret_with_cmek', [
+            $name['project'],
+            $name['secret'],
+            $kmsKey,
+        ]);
+
+        $this->assertStringContainsString('Created secret', $output);
+    }
+
     public function testDeleteSecret()
     {
         $name = self::$client->parseName(self::$testSecretToDelete->getName());
@@ -410,7 +441,7 @@ class secretmanagerTest extends TestCase
     public function testCreateSecretWithRotation()
     {
         if (self::$skipRotationTests) {
-            $this->markTestSkipped('SECRET_ROTATION_TOPIC not set; skipping rotation tests.');
+            $this->markTestSkipped('PUBSUB_TOPIC_NAME not set; skipping rotation tests.');
         }
         $name = self::$client->parseName(self::$testSecretWithRotationToCreateName);
 
@@ -432,10 +463,10 @@ class secretmanagerTest extends TestCase
     public function testCreateSecretWithTopic()
     {
         if (self::$skipRotationTests) {
-            $this->markTestSkipped('SECRET_ROTATION_TOPIC not set; skipping topic tests.');
+            $this->markTestSkipped('PUBSUB_TOPIC_NAME not set; skipping topic tests.');
         }
 
-        $name = self::$client->parseName(self::$testSecretWithRotationToCreateName);
+        $name = self::$client->parseName(self::$testSecretWithTopicToCreateName);
 
         $output = $this->runFunctionSnippet('create_secret_with_topic', [
             $name['project'],
@@ -453,7 +484,7 @@ class secretmanagerTest extends TestCase
     public function testUpdateSecretRotation()
     {
         if (self::$skipRotationTests) {
-            $this->markTestSkipped('SECRET_ROTATION_TOPIC not set; skipping rotation tests.');
+            $this->markTestSkipped('PUBSUB_TOPIC_NAME not set; skipping rotation tests.');
         }
         $name = self::$client->parseName(self::$testSecretWithRotationToCreateName);
 
@@ -478,7 +509,7 @@ class secretmanagerTest extends TestCase
     public function testRemoveSecretRotation()
     {
         if (self::$skipRotationTests) {
-            $this->markTestSkipped('SECRET_ROTATION_TOPIC not set; skipping rotation tests.');
+            $this->markTestSkipped('PUBSUB_TOPIC_NAME not set; skipping rotation tests.');
         }
         $name = self::$client->parseName(self::$testSecretWithRotationToCreateName);
 
@@ -506,6 +537,19 @@ class secretmanagerTest extends TestCase
         $this->assertStringContainsString('Destroyed secret version', $output);
     }
 
+    public function testDestroySecretVersionUsingEtag()
+    {
+        $name = self::$client->parseName(self::$testSecretVersionToDestroyWithETag->getName());
+
+        $output = $this->runFunctionSnippet('destroy_secret_version_using_etag', [
+            $name['project'],
+            $name['secret'],
+            $name['secret_version'],
+        ]);
+
+        $this->assertStringContainsString('Destroyed secret version', $output);
+    }
+
     public function testDisableSecretVersion()
     {
         $name = self::$client->parseName(self::$testSecretVersionToDisable->getName());
@@ -519,11 +563,37 @@ class secretmanagerTest extends TestCase
         $this->assertStringContainsString('Disabled secret version', $output);
     }
 
+    public function testDisableSecretVersionUsingEtag()
+    {
+        $name = self::$client->parseName(self::$testSecretVersionToDisableWithETag->getName());
+
+        $output = $this->runFunctionSnippet('disable_secret_version_using_etag', [
+            $name['project'],
+            $name['secret'],
+            $name['secret_version'],
+        ]);
+
+        $this->assertStringContainsString('Disabled secret version', $output);
+    }
+
     public function testEnableSecretVersion()
     {
         $name = self::$client->parseName(self::$testSecretVersionToEnable->getName());
 
         $output = $this->runFunctionSnippet('enable_secret_version', [
+            $name['project'],
+            $name['secret'],
+            $name['secret_version'],
+        ]);
+
+        $this->assertStringContainsString('Enabled secret version', $output);
+    }
+
+    public function testEnableSecretVersionUsingEtag()
+    {
+        $name = self::$client->parseName(self::$testSecretVersionToEnableWithETag->getName());
+
+        $output = $this->runFunctionSnippet('enable_secret_version_using_etag', [
             $name['project'],
             $name['secret'],
             $name['secret_version'],
@@ -597,6 +667,20 @@ class secretmanagerTest extends TestCase
         $this->assertStringContainsString('secret version', $output);
     }
 
+    public function testListSecretsWithFilter()
+    {
+        $name = self::$client->parseName(self::$testSecret->getName());
+
+        $filter = 'name:' . $name['secret'];
+
+        $output = $this->runFunctionSnippet('list_secrets_with_filter', [
+            $name['project'],
+            $filter,
+        ]);
+
+        $this->assertStringContainsString('Found secret', $output);
+    }
+
     public function testListSecrets()
     {
         $name = self::$client->parseName(self::$testSecret->getName());
@@ -607,6 +691,22 @@ class secretmanagerTest extends TestCase
 
         $this->assertStringContainsString('secret', $output);
         $this->assertStringContainsString($name['secret'], $output);
+    }
+
+    public function testListSecretVersionsWithFilter()
+    {
+        $name = self::$client->parseName(self::$testSecretWithVersions->getName());
+
+        // Filter for enabled versions.
+        $filter = 'state = ENABLED';
+
+        $output = $this->runFunctionSnippet('list_secret_versions_with_filter', [
+            $name['project'],
+            $name['secret'],
+            $filter,
+        ]);
+
+        $this->assertStringContainsString('Found secret version', $output);
     }
 
     public function testUpdateSecret()
