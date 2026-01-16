@@ -32,16 +32,18 @@ use Google\Protobuf\FieldMask;
 /**
  * Update the rotation policy for a secret.
  *
- * @param string $projectId Your Google Cloud Project ID
- * @param string $secretId  Your secret ID
- * @param int $nextRotationTimeSeconds Timestamp (seconds since epoch) for next rotation
- * @param int $rotationPeriodSeconds Duration in seconds for rotation period
+ * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
+ * @param string $secretId  Your secret ID (e.g. 'my-secret')
+ * @param string $topicName The Pub/Sub topic name for rotation notifications (e.g. 'projects/my-project/topics/my-topic')
  */
-function update_secret_rotation(string $projectId, string $secretId, int $nextRotationTimeSeconds, int $rotationPeriodSeconds, string $topicName): void
+function update_secret_rotation(string $projectId, string $secretId, string $topicName): void
 {
     $client = new SecretManagerServiceClient();
 
     $name = $client->secretName($projectId, $secretId);
+
+    $nextRotationTimeSeconds = time() + 7200; // 2 hours
+    $rotationPeriodSeconds = 3600; // 1 hour
 
     $rotation = new Rotation([
         'next_rotation_time' => new Timestamp(['seconds' => $nextRotationTimeSeconds]),
@@ -67,5 +69,6 @@ function update_secret_rotation(string $projectId, string $secretId, int $nextRo
 }
 // [END secretmanager_update_secret_rotation]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

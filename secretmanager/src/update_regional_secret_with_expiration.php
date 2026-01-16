@@ -25,27 +25,28 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_update_secret_with_expiration]
-// Import the Secret Manager client library.
+// [START secretmanager_update_regional_secret_with_expiration]
 use Google\Cloud\SecretManager\V1\Secret;
-use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 use Google\Cloud\SecretManager\V1\UpdateSecretRequest;
+use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 use Google\Protobuf\Duration;
 use Google\Protobuf\FieldMask;
 
 /**
- * Update the TTL (expiration) for a secret.
+ * Update the expiration TTL for a regional secret.
  *
- * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
- * @param string $secretId  Your secret ID (e.g. 'my-secret')
+ * @param string $projectId Google Cloud project id (e.g. 'my-project-id')
+ * @param string $locationId Secret location (e.g. 'us-central1')
+ * @param string $secretId  Secret id (e.g. 'my-secret' )
  */
-function update_secret_with_expiration(string $projectId, string $secretId): void
+function update_regional_secret_with_expiration(string $projectId, string $locationId, string $secretId): void
 {
     // Create the Secret Manager client.
-    $client = new SecretManagerServiceClient();
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
     // Build the resource name of the secret.
-    $name = $client->secretName($projectId, $secretId);
+    $name = $client->projectLocationSecretName($projectId, $locationId, $secretId);
 
     // Build the secret with the new TTL.
     $secret = new Secret([
@@ -70,7 +71,7 @@ function update_secret_with_expiration(string $projectId, string $secretId): voi
     // Print the new secret name.
     printf('Updated secret: %s', $newSecret->getName());
 }
-// [END secretmanager_update_secret_with_expiration]
+// [END secretmanager_update_regional_secret_with_expiration]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';

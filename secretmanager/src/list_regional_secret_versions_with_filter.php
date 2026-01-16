@@ -25,22 +25,24 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_list_secret_versions_with_filter]
+// [START secretmanager_list_regional_secret_versions_with_filter]
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 use Google\Cloud\SecretManager\V1\ListSecretVersionsRequest;
 
 /**
- * List secret versions for a secret using a filter.
+ * List secret versions in a location using a filter.
  *
  * @param string $projectId Your Google Cloud project id (e.g. 'my-project')
- * @param string $secretId  Your secret id (e.g. 'my-secret')
+ * @param string $locationId Your secret location (e.g. 'us-central1')
+ * @param string $secretId  Secret id (e.g. 'my-secret')
  * @param string $filter    Filter string (see Secret Manager filtering docs)
  */
-function list_secret_versions_with_filter(string $projectId, string $secretId, string $filter): void
+function list_regional_secret_versions_with_filter(string $projectId, string $locationId, string $secretId, string $filter): void
 {
-    $client = new SecretManagerServiceClient();
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
-    $parent = $client->secretName($projectId, $secretId);
+    $parent = $client->projectLocationSecretName($projectId, $locationId, $secretId);
 
     $request = ListSecretVersionsRequest::build($parent)->setFilter($filter);
 
@@ -48,7 +50,7 @@ function list_secret_versions_with_filter(string $projectId, string $secretId, s
         printf('Found secret version %s' . PHP_EOL, $version->getName());
     }
 }
-// [END secretmanager_list_secret_versions_with_filter]
+// [END secretmanager_list_regional_secret_versions_with_filter]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';

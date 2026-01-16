@@ -25,49 +25,52 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_create_secret_with_expiration]
+// [START secretmanager_create_regional_secret_with_rotation]
 use Google\Cloud\SecretManager\V1\CreateSecretRequest;
 use Google\Cloud\SecretManager\V1\Replication;
 use Google\Cloud\SecretManager\V1\Replication\Automatic;
 use Google\Cloud\SecretManager\V1\Secret;
+use Google\Cloud\SecretManager\V1\Rotation;
+use Google\Cloud\SecretManager\V1\Topic;
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
+use Google\Protobuf\Timestamp;
 use Google\Protobuf\Duration;
 
 /**
- * Create a secret with expiration TTL (as a Timestamp expiration).
- * 
- * @param string $projectId  Your Google Cloud Project ID (e.g. 'my-project')
- * @param string $secretId   Your secret ID (e.g. 'my-secret')
+ * Create a regional secret with a rotation policy.
+ *
+ * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
+ * @param string $locationId Secret location (e.g. 'us-central1')
+ * @param string $secretId  Your secret ID (e.g. 'my-secret')
+ * @param string $topicName Full Pub/Sub topic name (projects/{project}/topics/{topic})
  */
-function create_secret_with_expiration(string $projectId, string $secretId): void
+function create_regional_secret_with_rotation(string $projectId, string $locationId, string $secretId, string $topicName): void
 {
-    // Create the Secret Manager client.
-    $client = new SecretManagerServiceClient();
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
-    // Build the resource name of the parent project.
-    $parent = $client->projectName($projectId);
+    $parent = $client->locationName($projectId, $locationId);
 
-    $secret = new Secret([
-        'replication' => new Replication([
-            'automatic' => new Automatic(),
-        ]),
+    $nextRotationTimeSeconds = time() + 7200; // 2 hours
+    $rotationPeriodSeconds = 3600; // 1 hour
+
+    $rotation = new Rotation([
+        'next_rotation_time' => new Timestamp(['seconds' => $nextRotationTimeSeconds]),
+        'rotation_period' => new Duration(['seconds' => $rotationPeriodSeconds]),
     ]);
 
-    $duration = new Duration();
-    $duration->setSeconds(3600); // 1 hour TTL in seconds
+    $secret = new Secret([
+        'rotation' => $rotation,
+        'topics' => [new Topic(['name' => $topicName])],
+    ]);
 
-    $secret->setTtl($duration);
-
-    // Build the request.
     $request = CreateSecretRequest::build($parent, $secretId, $secret);
 
-    // Create the secret.
     $newSecret = $client->createSecret($request);
 
-    // Print the new secret name.
-    printf('Created secret %s with expiration', $newSecret->getName());
+    printf('Created secret %s with rotation', $newSecret->getName());
 }
-// [END secretmanager_create_secret_with_expiration]
+// [END secretmanager_create_regional_secret_with_rotation]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';

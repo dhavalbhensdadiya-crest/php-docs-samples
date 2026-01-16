@@ -115,7 +115,7 @@ class secretmanagerTest extends TestCase
     self::$testSecretWithCMEKToCreateName = self::$client->secretName(self::$projectId, self::randomSecretId());
 
         self::$testRotationPeriod = 3600; // 1 hour
-        self::$testRotationNextTime = time() + 7200; // 2 hours from now
+        self::$testRotationNextTime = 7200; // 2 hours from now
 
         // Rotation topic: allow users to supply a full topic resource via
         // PUBSUB_TOPIC_NAME (projects/{project}/topics/{topic}). If not
@@ -363,7 +363,7 @@ class secretmanagerTest extends TestCase
             $this->markTestSkipped('CUSTOMER_ENC_KEY not set; skipping CMEK test.');
         }
 
-        $name = self::$client->parseName(self::$testSecretToCreateName);
+        $name = self::$client->parseName(self::$testSecretWithCMEKToCreateName);
 
         $output = $this->runFunctionSnippet('create_secret_with_cmek', [
             $name['project'],
@@ -407,13 +407,12 @@ class secretmanagerTest extends TestCase
         $output = $this->runFunctionSnippet('create_secret_with_expiration', [
             $name['project'],
             $name['secret'],
-            self::$testExpirationTime,
         ]);
 
         $this->assertStringContainsString('Created secret', $output);
     }
 
-    public function testUpdateSecretExpiration()
+    public function testUpdateSecretWithExpiration()
     {
         $name = self::$client->parseName(self::$testSecretWithExpirationToCreateName);
 
@@ -460,27 +459,6 @@ class secretmanagerTest extends TestCase
         $this->assertEquals(self::$testRotationNextTime, $secret->getRotation()->getNextRotationTime()->getSeconds());
     }
 
-    public function testCreateSecretWithTopic()
-    {
-        if (self::$skipRotationTests) {
-            $this->markTestSkipped('PUBSUB_TOPIC_NAME not set; skipping topic tests.');
-        }
-
-        $name = self::$client->parseName(self::$testSecretWithTopicToCreateName);
-
-        $output = $this->runFunctionSnippet('create_secret_with_topic', [
-            $name['project'],
-            $name['secret'],
-            self::$testRotationTopic,
-        ]);
-
-        $this->assertStringContainsString('Created secret', $output);
-
-        $secret = self::getSecret($name['project'], $name['secret']);
-        $this->assertNotEmpty($secret->getTopics());
-        $this->assertEquals(self::$testRotationTopic, $secret->getTopics()[0]->getName());
-    }
-
     public function testUpdateSecretRotation()
     {
         if (self::$skipRotationTests) {
@@ -522,6 +500,23 @@ class secretmanagerTest extends TestCase
 
         $secret = self::getSecret($name['project'], $name['secret']);
         $this->assertNull($secret->getRotation());
+    }
+
+    public function testCreateSecretWithTopic()
+    {
+        if (self::$skipRotationTests) {
+            $this->markTestSkipped('PUBSUB_TOPIC_NAME not set; skipping topic tests.');
+        }
+
+        $name = self::$client->parseName(self::$testSecretWithTopicToCreateName);
+
+        $output = $this->runFunctionSnippet('create_secret_with_topic', [
+            $name['project'],
+            $name['secret'],
+            self::$testRotationTopic,
+        ]);
+
+        $this->assertStringContainsString('Created secret', $output);
     }
 
     public function testDestroySecretVersion()

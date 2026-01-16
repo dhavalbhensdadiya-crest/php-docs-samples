@@ -25,37 +25,32 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_create_secret_with_expiration]
+// [START secretmanager_create_regional_secret_with_expiration]
 use Google\Cloud\SecretManager\V1\CreateSecretRequest;
-use Google\Cloud\SecretManager\V1\Replication;
-use Google\Cloud\SecretManager\V1\Replication\Automatic;
 use Google\Cloud\SecretManager\V1\Secret;
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 use Google\Protobuf\Duration;
 
 /**
- * Create a secret with expiration TTL (as a Timestamp expiration).
- * 
- * @param string $projectId  Your Google Cloud Project ID (e.g. 'my-project')
- * @param string $secretId   Your secret ID (e.g. 'my-secret')
+ * Create a regional secret with expiration TTL (as a Timestamp expiration).
+ *
+ * @param string $projectId Google Cloud project id (e.g. 'my-project')
+ * @param string $locationId Secret location (e.g. 'us-central1')
+ * @param string $secretId Id for the new secret (e.g. 'my-secret')
  */
-function create_secret_with_expiration(string $projectId, string $secretId): void
+function create_regional_secret_with_expiration(string $projectId, string $locationId, string $secretId): void
 {
-    // Create the Secret Manager client.
-    $client = new SecretManagerServiceClient();
+    // Create the Secret Manager Regional client.
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
     // Build the resource name of the parent project.
-    $parent = $client->projectName($projectId);
-
-    $secret = new Secret([
-        'replication' => new Replication([
-            'automatic' => new Automatic(),
-        ]),
-    ]);
+    $parent = $client->locationName($projectId, $locationId);
 
     $duration = new Duration();
     $duration->setSeconds(3600); // 1 hour TTL in seconds
 
+    $secret = new Secret();
     $secret->setTtl($duration);
 
     // Build the request.
@@ -65,9 +60,9 @@ function create_secret_with_expiration(string $projectId, string $secretId): voi
     $newSecret = $client->createSecret($request);
 
     // Print the new secret name.
-    printf('Created secret %s with expiration', $newSecret->getName());
+    printf('Created secret %s with expiration' . PHP_EOL, $newSecret->getName());
 }
-// [END secretmanager_create_secret_with_expiration]
+// [END secretmanager_create_regional_secret_with_expiration]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';

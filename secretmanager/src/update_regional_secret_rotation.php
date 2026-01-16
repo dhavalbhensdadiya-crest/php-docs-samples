@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * Copyright 2025 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,26 +19,43 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_remove_secret_rotation]
+// [START secretmanager_update_regional_secret_rotation]
 use Google\Cloud\SecretManager\V1\Secret;
+use Google\Cloud\SecretManager\V1\Rotation;
+use Google\Cloud\SecretManager\V1\Topic;
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 use Google\Cloud\SecretManager\V1\UpdateSecretRequest;
+use Google\Protobuf\Timestamp;
+use Google\Protobuf\Duration;
 use Google\Protobuf\FieldMask;
 
 /**
- * Remove the rotation policy from a secret.
+ * Update rotation for a regional secret.
  *
  * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
+ * @param string $locationId Secret location (e.g. 'us-central1')
  * @param string $secretId  Your secret ID (e.g. 'my-secret')
+ * @param string $topicName The Pub/Sub topic name for rotation notifications (e.g. 'projects/my-project/topics/my-topic')
  */
-function remove_secret_rotation(string $projectId, string $secretId): void
+function update_regional_secret_rotation(string $projectId, string $locationId, string $secretId, string $topicName): void
 {
-    $client = new SecretManagerServiceClient();
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
-    $name = $client->secretName($projectId, $secretId);
+    $name = $client->projectLocationSecretName($projectId, $locationId, $secretId);
+
+    $nextRotationTimeSeconds = time() + 7200; // 2 hours
+    $rotationPeriodSeconds = 3600; // 1 hour
+
+    $rotation = new Rotation([
+        'next_rotation_time' => new Timestamp(['seconds' => $nextRotationTimeSeconds]),
+        'rotation_period' => new Duration(['seconds' => $rotationPeriodSeconds]),
+    ]);
 
     $secret = new Secret([
         'name' => $name,
+        'rotation' => $rotation,
+        'topics' => [new Topic(['name' => $topicName])],
     ]);
 
     $fieldMask = new FieldMask();
@@ -52,7 +69,7 @@ function remove_secret_rotation(string $projectId, string $secretId): void
 
     printf('Updated secret: %s', $newSecret->getName());
 }
-// [END secretmanager_remove_secret_rotation]
+// [END secretmanager_update_regional_secret_rotation]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';

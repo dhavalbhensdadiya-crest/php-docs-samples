@@ -36,9 +36,9 @@ use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 /**
  * Create a secret that uses a customer-managed encryption key (CMEK).
  *
- * @param string $projectId Google Cloud project id
- * @param string $secretId Id for the new secret
- * @param string $kmsKeyName Full KMS key resource name
+ * @param string $projectId Google Cloud project id (e.g. 'my-project-id')
+ * @param string $secretId Id for the new secret (e.g. 'my-secret-id')
+ * @param string $kmsKeyName Full KMS key resource name (e.g. 'projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key')
  */
 function create_secret_with_cmek(string $projectId, string $secretId, string $kmsKeyName): void
 {
@@ -66,5 +66,6 @@ function create_secret_with_cmek(string $projectId, string $secretId, string $km
 }
 // [END secretmanager_create_secret_with_cmek]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

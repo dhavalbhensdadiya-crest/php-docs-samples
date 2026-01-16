@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * Copyright 2025 Google LLC.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,23 +19,25 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_remove_secret_rotation]
+// [START secretmanager_remove_regional_secret_rotation]
 use Google\Cloud\SecretManager\V1\Secret;
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 use Google\Cloud\SecretManager\V1\UpdateSecretRequest;
 use Google\Protobuf\FieldMask;
 
 /**
- * Remove the rotation policy from a secret.
+ * Remove rotation for a regional secret.
  *
  * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
+ * @param string $locationId Secret location (e.g. 'us-central1')
  * @param string $secretId  Your secret ID (e.g. 'my-secret')
  */
-function remove_secret_rotation(string $projectId, string $secretId): void
+function remove_regional_secret_rotation(string $projectId, string $locationId, string $secretId): void
 {
-    $client = new SecretManagerServiceClient();
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
-    $name = $client->secretName($projectId, $secretId);
+    $name = $client->projectLocationSecretName($projectId, $locationId, $secretId);
 
     $secret = new Secret([
         'name' => $name,
@@ -52,7 +54,7 @@ function remove_secret_rotation(string $projectId, string $secretId): void
 
     printf('Updated secret: %s', $newSecret->getName());
 }
-// [END secretmanager_remove_secret_rotation]
+// [END secretmanager_remove_regional_secret_rotation]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';

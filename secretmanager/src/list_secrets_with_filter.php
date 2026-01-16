@@ -32,7 +32,7 @@ use Google\Cloud\SecretManager\V1\ListSecretsRequest;
 /**
  * List secrets in a project using a filter.
  *
- * @param string $projectId Your Google Cloud project id
+ * @param string $projectId Your Google Cloud project id (e.g. 'my-project')
  * @param string $filter    Filter string (see Secret Manager filtering docs)
  */
 function list_secrets_with_filter(string $projectId, string $filter): void
@@ -49,5 +49,6 @@ function list_secrets_with_filter(string $projectId, string $filter): void
 }
 // [END secretmanager_list_secrets_with_filter]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

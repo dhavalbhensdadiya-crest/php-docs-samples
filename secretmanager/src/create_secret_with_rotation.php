@@ -41,15 +41,16 @@ use Google\Protobuf\Duration;
  *
  * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
  * @param string $secretId  Your secret ID (e.g. 'my-secret')
- * @param int $nextRotationTimeSeconds Timestamp (seconds since epoch) for next rotation
- * @param int $rotationPeriodSeconds Duration in seconds for rotation period (minimum 3600)
  * @param string $topicName Full Pub/Sub topic name (projects/{project}/topics/{topic})
  */
-function create_secret_with_rotation(string $projectId, string $secretId, int $nextRotationTimeSeconds, int $rotationPeriodSeconds, string $topicName): void
+function create_secret_with_rotation(string $projectId, string $secretId, string $topicName): void
 {
     $client = new SecretManagerServiceClient();
 
     $parent = $client->projectName($projectId);
+
+    $nextRotationTimeSeconds = time() + 7200; // 2 hours
+    $rotationPeriodSeconds = 3600; // 1 hour
 
     $rotation = new Rotation([
         'next_rotation_time' => new Timestamp(['seconds' => $nextRotationTimeSeconds]),
@@ -70,5 +71,6 @@ function create_secret_with_rotation(string $projectId, string $secretId, int $n
 }
 // [END secretmanager_create_secret_with_rotation]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

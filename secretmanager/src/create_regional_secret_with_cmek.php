@@ -25,49 +25,42 @@ declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
 
-// [START secretmanager_create_secret_with_expiration]
+// [START secretmanager_create_regional_secret_with_cmek]
 use Google\Cloud\SecretManager\V1\CreateSecretRequest;
-use Google\Cloud\SecretManager\V1\Replication;
-use Google\Cloud\SecretManager\V1\Replication\Automatic;
+use Google\Cloud\SecretManager\V1\CustomerManagedEncryption;
 use Google\Cloud\SecretManager\V1\Secret;
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
-use Google\Protobuf\Duration;
 
 /**
- * Create a secret with expiration TTL (as a Timestamp expiration).
- * 
- * @param string $projectId  Your Google Cloud Project ID (e.g. 'my-project')
- * @param string $secretId   Your secret ID (e.g. 'my-secret')
+ * Create a regional secret that uses a customer-managed encryption key (CMEK).
+ *
+ * @param string $projectId Google Cloud project id (e.g. 'my-project-id')
+ * @param string $locationId Secret location (e.g. 'us-central1')
+ * @param string $secretId Id for the new secret (e.g. 'my-secret-id')
+ * @param string $kmsKeyName Full KMS key resource name (e.g. 'projects/my-project/locations/global/keyRings/my-kr/cryptoKeys/my-key')
  */
-function create_secret_with_expiration(string $projectId, string $secretId): void
+function create_regional_secret_with_cmek(string $projectId, string $locationId, string $secretId, string $kmsKeyName): void
 {
-    // Create the Secret Manager client.
-    $client = new SecretManagerServiceClient();
+    $options = ['apiEndpoint' => "secretmanager.$locationId.rep.googleapis.com"];
+    $client = new SecretManagerServiceClient($options);
 
-    // Build the resource name of the parent project.
-    $parent = $client->projectName($projectId);
+    $parent = $client->locationName($projectId, $locationId);
 
-    $secret = new Secret([
-        'replication' => new Replication([
-            'automatic' => new Automatic(),
-        ]),
+    $cmek = new CustomerManagedEncryption([
+        'kms_key_name' => $kmsKeyName,
     ]);
 
-    $duration = new Duration();
-    $duration->setSeconds(3600); // 1 hour TTL in seconds
+    $secret = new Secret([
+        'customer_managed_encryption' => $cmek
+    ]);
 
-    $secret->setTtl($duration);
-
-    // Build the request.
     $request = CreateSecretRequest::build($parent, $secretId, $secret);
 
-    // Create the secret.
-    $newSecret = $client->createSecret($request);
+    $created = $client->createSecret($request);
 
-    // Print the new secret name.
-    printf('Created secret %s with expiration', $newSecret->getName());
+    printf('Created secret %s with CMEK %s' . PHP_EOL, $created->getName(), $kmsKeyName);
 }
-// [END secretmanager_create_secret_with_expiration]
+// [END secretmanager_create_regional_secret_with_cmek]
 
 // The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
