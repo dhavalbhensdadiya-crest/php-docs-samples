@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+/*
+ * For instructions on how to run the full sample:
+ *
+ * @see https://github.com/GoogleCloudPlatform/php-docs-samples/tree/main/secretmanager/README.md
+ */
+
 declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
@@ -26,12 +32,12 @@ use Google\Cloud\SecretManager\V1\Topic;
 use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 
 /**
- * Create a regional secret that uses a Pub/Sub topic for rotation notifications.
+ * Create a regional secret and associate it with a Pub/Sub topic.
  *
- * @param string $projectId Google Cloud project id
+ * @param string $projectId Google Cloud project id (e.g. 'my-project')
  * @param string $locationId Secret location (e.g. 'us-central1')
- * @param string $secretId Id for the new secret
- * @param string $topicName Full Pub/Sub topic resource name (projects/{project}/topics/{topic})
+ * @param string $secretId Id for the new secret (e.g. 'my-secret')
+ * @param string $topicName Full topic resource name (projects/{project}/topics/{topic})
  */
 function create_regional_secret_with_topic(string $projectId, string $locationId, string $secretId, string $topicName): void
 {
@@ -44,13 +50,16 @@ function create_regional_secret_with_topic(string $projectId, string $locationId
         'topics' => [new Topic(['name' => $topicName])],
     ]);
 
+     // Build the request.
     $request = CreateSecretRequest::build($parent, $secretId, $secret);
 
+    // Create the secret.
     $created = $client->createSecret($request);
 
-    printf('Created regional secret %s with topic %s' . PHP_EOL, $created->getName(), $topicName);
+    printf('Created secret %s with topic %s' . PHP_EOL, $created->getName(), $topicName);
 }
 // [END secretmanager_create_regional_secret_with_topic]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

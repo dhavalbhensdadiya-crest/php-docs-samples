@@ -56,5 +56,6 @@ function destroy_secret_version_using_etag(string $projectId, string $secretId, 
 }
 // [END secretmanager_destroy_secret_version_using_etag]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

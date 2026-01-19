@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+/*
+ * For instructions on how to run the full sample:
+ *
+ * @see https://github.com/GoogleCloudPlatform/php-docs-samples/tree/main/secretmanager/README.md
+ */
+
 declare(strict_types=1);
 
 namespace Google\Cloud\Samples\SecretManager;
@@ -29,9 +35,13 @@ use Google\Protobuf\FieldMask;
 /**
  * Update a regional secret using an etag for optimistic concurrency.
  *
- * @param string $projectId Your Google Cloud Project ID
+ * This sample fetches the current secret, reads its etag, then attempts to
+ * update the secret's labels while providing the etag. The update will
+ * succeed only if the etag matches the server's current etag.
+ *
+ * @param string $projectId Your Google Cloud Project ID (e.g. 'my-project')
  * @param string $locationId Secret location (e.g. 'us-central1')
- * @param string $secretId  Your secret ID
+ * @param string $secretId  Your secret ID (e.g. 'my-secret')
  * @param string $labelKey  Label key to set
  * @param string $labelValue Label value to set
  */
@@ -47,20 +57,24 @@ function update_regional_secret_using_etag(string $projectId, string $locationId
 
     $etag = $current->getEtag();
 
+    // Prepare the secret with the updated labels and the stored etag.
     $secret = (new Secret())
         ->setName($name)
         ->setLabels([$labelKey => $labelValue])
         ->setEtag($etag);
 
+    // Only update the labels field.
     $updateMask = (new FieldMask())->setPaths(['labels']);
 
+    // Build and send the update request.
     $request = UpdateSecretRequest::build($secret, $updateMask);
 
     $response = $client->updateSecret($request);
 
-    printf('Updated regional secret using etag: %s' . PHP_EOL, $response->getName());
+    printf('Updated secret using etag: %s' . PHP_EOL, $response->getName());
 }
 // [END secretmanager_update_regional_secret_using_etag]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);

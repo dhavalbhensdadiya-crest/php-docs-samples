@@ -36,8 +36,8 @@ use Google\Cloud\SecretManager\V1\Client\SecretManagerServiceClient;
 /**
  * Create a secret and associate it with a Pub/Sub topic.
  *
- * @param string $projectId Google Cloud project id
- * @param string $secretId Id for the new secret
+ * @param string $projectId Google Cloud project id (e.g. 'my-project')
+ * @param string $secretId Id for the new secret (e.g. 'my-secret')
  * @param string $topicName Full topic resource name (projects/{project}/topics/{topic})
  */
 function create_secret_with_topic(string $projectId, string $secretId, string $topicName): void
@@ -63,5 +63,6 @@ function create_secret_with_topic(string $projectId, string $secretId, string $t
 }
 // [END secretmanager_create_secret_with_topic]
 
+// The following 2 lines are only needed to execute the samples on the CLI
 require_once __DIR__ . '/../../testing/sample_helpers.php';
 \Google\Cloud\Samples\execute_sample(__FILE__, __NAMESPACE__, $argv);
